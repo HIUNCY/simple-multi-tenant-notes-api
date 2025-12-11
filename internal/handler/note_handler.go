@@ -28,15 +28,17 @@ func (h *NoteHandler) Create(c *gin.Context) {
 		return
 	}
 
-	orgID := c.GetHeader("X-Organization-ID")
-	userID := c.GetHeader("X-User-ID")
+	user, _ := c.Get("userID")
+	org, _ := c.Get("orgID")
+	userIDStr := user.(string)
+	orgIDStr := org.(string)
 
-	if orgID == "" || userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Header X-Organization-ID dan X-User-ID wajib diisi"})
+	if orgIDStr == "" || userIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User dan Organization ID tidak valid"})
 		return
 	}
 
-	note, err := h.service.CreateNote(req.Title, req.Content, orgID, userID)
+	note, err := h.service.CreateNote(req.Title, req.Content, orgIDStr, userIDStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -46,13 +48,14 @@ func (h *NoteHandler) Create(c *gin.Context) {
 }
 
 func (h *NoteHandler) GetAll(c *gin.Context) {
-	orgID := c.GetHeader("X-Organization-ID")
-	if orgID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Header X-Organization-ID wajib diisi"})
+	org, _ := c.Get("orgID")
+	orgIDStr := org.(string)
+	if orgIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Organization ID tidak valid"})
 		return
 	}
 
-	notes, err := h.service.GetNotes(orgID)
+	notes, err := h.service.GetNotes(orgIDStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -69,13 +72,14 @@ func (h *NoteHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	orgID := c.GetHeader("X-Organization-ID")
-	if orgID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Header X-Organization-ID wajib diisi"})
+	org, _ := c.Get("orgID")
+	orgIDStr := org.(string)
+	if orgIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Organization ID tidak valid"})
 		return
 	}
 
-	note, err := h.service.GetNoteByID(id, orgID)
+	note, err := h.service.GetNoteByID(id, orgIDStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

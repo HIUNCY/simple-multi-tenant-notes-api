@@ -51,6 +51,9 @@ func main() {
 	noteService := service.NewNoteService(noteRepo, auditRepo)
 	noteHandler := handler.NewNoteHandler(noteService)
 
+	// AUTH FEATURE
+	authHandler := handler.NewAuthHandler(cfg)
+
 	enforcer, err := casbin.NewEnforcer("model.conf", "policy.csv")
 	if err != nil {
 		log.Fatalf("Gagal init Casbin: %v", err)
@@ -59,8 +62,11 @@ func main() {
 
 	r := gin.Default()
 
+	r.POST("/login", authHandler.Login)
+
 	api := r.Group("/api")
 	{
+		api.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 		api.Use(middleware.CasbinMiddleware(enforcer))
 		{
 			api.POST("/notes", noteHandler.Create)

@@ -12,6 +12,7 @@ type Config struct {
 	DBUrl       string
 	MongoURI    string
 	MongoDBName string
+	JWTSecret   string
 }
 
 func LoadConfig() *Config {
@@ -45,10 +46,13 @@ func LoadConfig() *Config {
 		mongoDBName = "audit_logs"
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+
 	return &Config{
 		Port:        os.Getenv("PORT"),
 		DBUrl:       dbUrl,
 		MongoURI:    mongoURI,
 		MongoDBName: mongoDBName,
+		JWTSecret:   jwtSecret,
 	}
 }

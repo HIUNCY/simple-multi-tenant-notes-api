@@ -10,18 +10,20 @@ import (
 
 func CasbinMiddleware(enforcer *casbin.Enforcer) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		user := c.GetHeader("X-User-ID")
-		org := c.GetHeader("X-Organization-ID")
+		user, _ := c.Get("userID")
+		org, _ := c.Get("orgID")
+		userIDStr := user.(string)
+		orgIDStr := org.(string)
 		path := c.Request.URL.Path
 		method := c.Request.Method
 
 		if user == "" || org == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User/Org Header missing"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User dan Organization ID tidak valid"})
 			c.Abort()
 			return
 		}
 
-		allowed, err := enforcer.Enforce(user, org, path, method)
+		allowed, err := enforcer.Enforce(userIDStr, orgIDStr, path, method)
 
 		if err != nil {
 			log.Printf("Casbin error: %v", err)
@@ -35,7 +37,7 @@ func CasbinMiddleware(enforcer *casbin.Enforcer) gin.HandlerFunc {
 		} else {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error":  "Anda tidak memiliki akses (Forbidden)",
-				"detail": "Role anda di " + org + " tidak mengizinkan " + method,
+				"detail": "Role anda di " + orgIDStr + " tidak mengizinkan " + method,
 			})
 			c.Abort()
 		}
