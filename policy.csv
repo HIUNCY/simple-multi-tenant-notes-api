@@ -1,0 +1,5 @@
+p, admin, ORG-PEGADAIAN, /api/notes*, (GET)|(POST)
+p, viewer, ORG-PEGADAIAN, /api/notes*, GET
+
+g, user-zainul, admin, ORG-PEGADAIAN
+g, user-kamal, viewer, ORG-PEGADAIAN
