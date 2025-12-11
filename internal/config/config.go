@@ -13,6 +13,7 @@ type Config struct {
 	MongoURI    string
 	MongoDBName string
 	JWTSecret   string
+	RabbitMQURL string
 }
 
 func LoadConfig() *Config {
@@ -47,6 +48,7 @@ func LoadConfig() *Config {
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
+	rabbitMQUrl := os.Getenv("RABBITMQ_URL")
 
 	return &Config{
 		Port:        os.Getenv("PORT"),
@@ -54,5 +56,6 @@ func LoadConfig() *Config {
 		MongoURI:    mongoURI,
 		MongoDBName: mongoDBName,
 		JWTSecret:   jwtSecret,
+		RabbitMQURL: rabbitMQUrl,
 	}
 }

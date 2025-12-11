@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/HIUNCY/simple-multi-tenant-notes-api/internal/entity"
+	"github.com/HIUNCY/simple-multi-tenant-notes-api/internal/queue"
 	"github.com/HIUNCY/simple-multi-tenant-notes-api/internal/repository"
 )
 
@@ -17,10 +18,10 @@ type NoteService interface {
 
 type noteService struct {
 	repo  repository.NoteRepository
-	audit repository.AuditRepository
+	audit *queue.AuditProducer
 }
 
-func NewNoteService(repo repository.NoteRepository, audit repository.AuditRepository) NoteService {
+func NewNoteService(repo repository.NoteRepository, audit *queue.AuditProducer) NoteService {
 	return &noteService{repo: repo, audit: audit}
 }
 
@@ -45,7 +46,7 @@ func (s *noteService) CreateNote(title, content, orgID, userID string) (*entity.
 	}
 
 	go func() {
-		auditLog := &entity.AuditLog{
+		auditLog := entity.AuditLog{
 			Action:         "CREATE_NOTE",
 			NoteID:         newNote.ID,
 			OrganizationID: orgID,
@@ -54,10 +55,10 @@ func (s *noteService) CreateNote(title, content, orgID, userID string) (*entity.
 			Timestamp:      time.Now(),
 		}
 
-		if err := s.audit.Create(auditLog); err != nil {
-			log.Printf("Gagal menulis Audit Log ke Mongo: %v", err)
+		if err := s.audit.PublishLog(auditLog); err != nil {
+			log.Printf("Gagal kirim ke RabbitMQ: %v", err)
 		} else {
-			log.Printf("Audit Log tersimpan di Mongo untuk Note ID: %d", newNote.ID)
+			log.Printf("Audit Log terkirim ke Queue untuk Note ID: %d", newNote.ID)
 		}
 	}()
 

@@ -9,10 +9,12 @@ import (
 	"github.com/HIUNCY/simple-multi-tenant-notes-api/internal/database"
 	"github.com/HIUNCY/simple-multi-tenant-notes-api/internal/handler"
 	"github.com/HIUNCY/simple-multi-tenant-notes-api/internal/middleware"
+	"github.com/HIUNCY/simple-multi-tenant-notes-api/internal/queue"
 	"github.com/HIUNCY/simple-multi-tenant-notes-api/internal/repository"
 	"github.com/HIUNCY/simple-multi-tenant-notes-api/internal/service"
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
@@ -45,10 +47,30 @@ func main() {
 	}
 	log.Println("Tabel 'notes' berhasil dibuat/dipastikan ada!")
 
+	rmqConn, rmqCh, err := queue.ConnectRabbitMQ(cfg.RabbitMQURL)
+	if err != nil {
+		log.Fatalf("Gagal connect RabbitMQ: %v", err)
+	}
+	defer func(rmqConn *amqp.Connection) {
+		err := rmqConn.Close()
+		if err != nil {
+			log.Fatalf("Gagal close RabbitMQ: %v", err)
+		}
+	}(rmqConn)
+	defer func(rmqCh *amqp.Channel) {
+		err := rmqCh.Close()
+		if err != nil {
+			log.Fatalf("Gagal close RabbitMQ channel: %v", err)
+		}
+	}(rmqCh)
+
 	// NOTE FEATURE
 	noteRepo := repository.NewPostgresNoteRepository(db)
 	auditRepo := repository.NewMongoAuditRepository(mongoClient, cfg.MongoDBName)
-	noteService := service.NewNoteService(noteRepo, auditRepo)
+	auditProducer := queue.NewAuditProducer(rmqCh)
+	auditConsumer := queue.NewAuditConsumer(rmqCh, auditRepo)
+	auditConsumer.StartListening()
+	noteService := service.NewNoteService(noteRepo, auditProducer)
 	noteHandler := handler.NewNoteHandler(noteService)
 
 	// AUTH FEATURE
